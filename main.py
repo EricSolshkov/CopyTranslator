@@ -1,7 +1,7 @@
 import PyQt5
 from PyQt5.QtWidgets import QMainWindow, QApplication
 import sys
-from RLBMainWindow import RLBMainWindow
+from CTMainWindow import RLBMainWindow
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)  # 创建应用程序对象
