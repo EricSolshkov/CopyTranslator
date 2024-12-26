@@ -1,3 +1,5 @@
+import re
+
 from PyQt5.QtCore import Qt, pyqtSlot, pyqtSignal, QObject
 from PyQt5.QtWidgets import QMainWindow, QTextEdit, QLabel, QHBoxLayout, QVBoxLayout, QWidget, QApplication
 from googletrans import Translator
@@ -58,11 +60,13 @@ class RLBMainWindow(QMainWindow):
 
     def update(self):
         text: str = self.sourceText.toPlainText()
+        text = re.sub(r"(?<=[a-zA-Z0-9])\n(?=[a-zA-Z0-9])", " ", text)
         new_text = text.replace("\n", "")
         self.outputText.setText(new_text)
         self.clipboard.setText(new_text)
         self.infoLabel.setText("Paste to clipboard!")
-        self.translatedText.setText("Translating...")
+        if self.translatedText.toPlainText() == '':
+            self.translatedText.setText("Translating...")
 
         worker = TranslationWorker(new_text)
         worker.signals.result.connect(self.OnTranslationComplete)
