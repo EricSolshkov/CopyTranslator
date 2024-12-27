@@ -7,3 +7,5 @@ dist/
 *.pyc
 *.pyd
 *.spec
+
+config.json

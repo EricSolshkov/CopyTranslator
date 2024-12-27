@@ -2,7 +2,7 @@ import re
 
 from PyQt5.QtCore import Qt, pyqtSlot, pyqtSignal, QObject
 from PyQt5.QtWidgets import QMainWindow, QTextEdit, QLabel, QHBoxLayout, QVBoxLayout, QWidget, QApplication
-from googletrans import Translator
+from TranslationService import *
 from PyQt5.QtCore import QRunnable, QThreadPool
 
 
@@ -15,16 +15,16 @@ class WorkerSignals(QObject):
 
 
 class TranslationWorker(QRunnable):
-    def __init__(self, text):
+    def __init__(self, service: TranslationService, text):
         super().__init__()
+        self.service: TranslationService = service
         self.text = text
         self.signals = WorkerSignals()
 
     @pyqtSlot()
     def run(self):
-        translator = Translator()
         try:
-            result = translator.translate(self.text, dest='zh-cn').text
+            result = self.service.translate(self.text)
         except Exception as e:
             self.signals.error.emit("An error occurred: " + str(e))  # 发送错误信息
         else:
@@ -33,7 +33,7 @@ class TranslationWorker(QRunnable):
             self.signals.finished.emit()
 
 
-class RLBMainWindow(QMainWindow):
+class CTMainWindow(QMainWindow):
     def __init__(self, parent: QApplication):
         super().__init__()
 
@@ -58,6 +58,16 @@ class RLBMainWindow(QMainWindow):
 
         self.sourceText.textChanged.connect(self.update)
 
+        self.service = GoogleTrans()
+        with open("config.json", "r") as f:
+            config = json.load(f)
+            if config["api"] == "baidu":
+                app_id = config["app_id"]
+                key = config["key"]
+                self.service = BaiduTranslation(app_id, key)
+            f.close()
+        self.setWindowTitle(f"Copy Translator - api: {self.service.name}")
+
     def update(self):
         text: str = self.sourceText.toPlainText()
         text = re.sub(r"(?<=[a-zA-Z0-9])\n(?=[a-zA-Z0-9])", " ", text)
@@ -68,7 +78,7 @@ class RLBMainWindow(QMainWindow):
         if self.translatedText.toPlainText() == '':
             self.translatedText.setText("Translating...")
 
-        worker = TranslationWorker(new_text)
+        worker = TranslationWorker(self.service, new_text)
         worker.signals.result.connect(self.OnTranslationComplete)
         worker.signals.error.connect(self.OnTranslationComplete)
         QThreadPool.globalInstance().start(worker)
